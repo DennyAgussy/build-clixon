@@ -1,12 +1,18 @@
 module device-inventory {
+  yang-version "1.1";
   namespace "http://msys-technologies.com/device-inventory";
   prefix msysdevice;
+
+  import clixon-autocli {
+     prefix autocli;
+  }
 
   container devices {
     list device {
       key "name";
       leaf name {
         type string;
+        autocli:alias "device-name";  // This creates an alias in the CLI
       }
       leaf ip-address {
         type string;
