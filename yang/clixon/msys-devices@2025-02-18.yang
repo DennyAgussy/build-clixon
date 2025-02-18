@@ -1,0 +1,19 @@
+module device-inventory {
+  namespace "http://msys-technologies.com/device-inventory";
+  prefix msysdevice;
+
+  container devices {
+    list device {
+      key "name";
+      leaf name {
+        type string;
+      }
+      leaf ip-address {
+        type string;
+      }
+      leaf type {
+        type string;  // e.g., "sonic", "cisco", etc.
+      }
+    }
+  }
+}
