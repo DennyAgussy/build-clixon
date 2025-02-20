@@ -7,8 +7,8 @@ module device-inventory {
      prefix autocli;
   }
 
-  container devices {
-    list device {
+  container custom-devices {
+    list device-list {
       key "name";
       leaf name {
         type string;
