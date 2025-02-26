@@ -451,6 +451,10 @@ restconf_http1_path_root(clixon_handle  h,
         if (api_http_data(h, sd, sd->sd_qvec) < 0)
             goto done;
     }
+    else if (api_path_is_customdevice(h)){
+        if (api_http_data(h, sd, sd->sd_qvec) < 0)//////////////////////
+            goto done;
+    }
     else if (api_path_is_stream(h)){
         restconf_socket *rs = rc->rc_socket;
         if (api_stream(h, sd, sd->sd_qvec, rs->rs_stream_timeout, NULL) < 0)
