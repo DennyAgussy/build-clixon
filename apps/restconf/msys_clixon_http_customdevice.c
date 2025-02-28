@@ -81,59 +81,59 @@ api_path_is_customdevice(clixon_handle h)
 }
 
 
-/*! Generic error function for custom device requests
- *
- * Handles multiple HTTP methods: GET, PUT, POST, PATCH, HEAD
- * Generates an appropriate error response with an HTML body.
- *
- * @param[in]  h      Clixon handle
- * @param[in]  req    Generic HTTP handle
- * @param[in]  code   HTTP error code (e.g., 400, 404, 500)
- * @retval     0      Success
- * @retval    -1      Error
- */
-static int
-api_http_customdevice_html_err(clixon_handle  h,
-                          void          *req,
-                          int            code)
-{
-    int   retval = -1;
-    cbuf *cb = NULL;
+// /*! Generic error function for custom device requests
+//  *
+//  * Handles multiple HTTP methods: GET, PUT, POST, PATCH, HEAD
+//  * Generates an appropriate error response with an HTML body.
+//  *
+//  * @param[in]  h      Clixon handle
+//  * @param[in]  req    Generic HTTP handle
+//  * @param[in]  code   HTTP error code (e.g., 400, 404, 500)
+//  * @retval     0      Success
+//  * @retval    -1      Error
+//  */
+// static int
+// api_http_customdevice_html_err(clixon_handle  h,
+//                           void          *req,
+//                           int            code)
+// {
+//     int   retval = -1;
+//     cbuf *cb = NULL;
 
-    clixon_debug(CLIXON_DBG_RESTCONF, "");
+//     clixon_debug(CLIXON_DBG_RESTCONF, "");
 
-    if ((cb = cbuf_new()) == NULL) {
-        clixon_err(OE_UNIX, errno, "cbuf_new");
-        goto done;
-    }
+//     if ((cb = cbuf_new()) == NULL) {
+//         clixon_err(OE_UNIX, errno, "cbuf_new");
+//         goto done;
+//     }
 
-    /* Set Content-Type header */
-    if (restconf_reply_header(req, "Content-Type", "text/html") < 0)
-        goto done;
+//     /* Set Content-Type header */
+//     if (restconf_reply_header(req, "Content-Type", "text/html") < 0)
+//         goto done;
 
-    /* Generate an HTML response */
-    cprintf(cb, "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n");
-    cprintf(cb, "<html><head>\r\n");
-    cprintf(cb, "<title>%d %s</title>\r\n", code, restconf_code2reason(code));
-    cprintf(cb, "</head><body>\r\n");
-    cprintf(cb, "<h1>Error: %s</h1>\r\n", restconf_code2reason(code));
-    cprintf(cb, "<p>Please check your request and try again.</p>\r\n");
-    cprintf(cb, "</body></html>\r\n");
+//     /* Generate an HTML response */
+//     cprintf(cb, "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n");
+//     cprintf(cb, "<html><head>\r\n");
+//     cprintf(cb, "<title>%d %s</title>\r\n", code, restconf_code2reason(code));
+//     cprintf(cb, "</head><body>\r\n");
+//     cprintf(cb, "<h1>Error: %s</h1>\r\n", restconf_code2reason(code));
+//     cprintf(cb, "<p>Please check your request and try again.</p>\r\n");
+//     cprintf(cb, "</body></html>\r\n");
 
-    /* Send the error response */
-    if (restconf_reply_send(req, code, cb, 0) < 0)
-        goto done;
+//     /* Send the error response */
+//     if (restconf_reply_send(req, code, cb, 0) < 0)
+//         goto done;
     
-    cb = NULL; /* just incase if restconf_reply_send already used free on cb*/
-    retval = 0;
+//     cb = NULL; /* just incase if restconf_reply_send already used free on cb*/
+//     retval = 0;
 
-done:
-    if (cb)
-        cbuf_free(cb);
+// done:
+//     if (cb)
+//         cbuf_free(cb);
 
-    clixon_debug(CLIXON_DBG_RESTCONF, "");
-    return retval;
-}
+//     clixon_debug(CLIXON_DBG_RESTCONF, "");
+//     return retval;
+// }
 
 /*! Generic error function for custom device requests (JSON response)
  *
@@ -410,8 +410,8 @@ api_http_customdevice(clixon_handle  h,
     // else if (api_http_data_file(h, req, path, head) < 0)
     //     goto done;
     
-ok:
-    retval = 0;
+// ok:
+//     retval = 0;
 done:
     if (path)
         free(path);
