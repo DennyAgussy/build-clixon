@@ -107,6 +107,8 @@ APPSRC   += restconf_methods_patch.c
 APPSRC   += restconf_root.c
 APPSRC   += restconf_stream.c
 APPSRC   += clixon_http_data.c
+APPSRC	 += msys_clixon_http_customdevice.c
+APPSRC	 += msys_sonic_device.c
 APPSRC   += restconf_main_$(with_restconf).c
 ifeq ($(with_restconf),native)
 APPSRC   += restconf_http1.c
