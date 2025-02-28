@@ -313,11 +313,11 @@ api_http_customdevice(clixon_handle  h,
 {
     int   retval = -1;
     char *request_method = NULL;
-    int   head = 0;
-    int   options = 0;
-    cbuf *indata = NULL;
+    // int   head = 0;
+    // int   options = 0;
+    // cbuf *indata = NULL;
     char *path = NULL;
-    int   ret;
+    // int   ret;
     char *device_name = NULL;
     char *device_url = NULL;
     char *ip_address = NULL;
@@ -355,7 +355,7 @@ api_http_customdevice(clixon_handle  h,
     // Using if-else since switch-case doesn't support strings directly
     if (strcmp(device_type, "SONiC") == 0) {
         if (sonic_process_api(h ,req, qvec, device_url, ip_address, request_method) != 0)
-            goto done
+            goto done;
     } else if (strcmp(device_type, "Cisco") == 0) {
         printf("Handling Cisco device.\n");
     } else {
@@ -415,9 +415,10 @@ ok:
 done:
     if (path)
         free(path);
-    if (device_name)
+    if (device_name){
         free(device_name);
-        free(device_url);    
+        free(device_url);
+    }    
     clixon_debug(CLIXON_DBG_RESTCONF, "retval:%d", retval);
     return retval;
 }
