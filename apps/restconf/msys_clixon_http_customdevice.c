@@ -17,7 +17,7 @@ api_path_is_customdevice(clixon_handle h)
 {
     int    retval = 0;
     char  *path = NULL;
-    char  *http_data_path;
+    const char *http_data_path = "/customdevice";
 
     /*
     if (restconf_http_data_get(h) == 1) //http data access permession for restconf
@@ -33,13 +33,19 @@ api_path_is_customdevice(clixon_handle h)
     </clixon-config>
     clicon_option_str checks the CLICON_HTTP_DATA_PATH in the clixon.config file
     Adding an option to change the endpoint as per our requirement. Changing CLICON_HTTP_DATA_PATH with 
-    */
+        
     if ((http_data_path = clicon_option_str(h, "CUSTOM_DEVICE_HTTP_PATH")) == NULL)
-        goto done;
+         goto done; this needs to be implemented in future these can't we implemented in clixon config file as 
+    CUSTOM_DEVICE_HTTP_PATH is not defined in clixon-config yang we need add that in our custom yang and resolve it on our own 
+    as of now i'll just hard code it to custompath 
+    */
+    clixon_debug(CLIXON_DBG_RESTCONF, "Explicint exit & Extracted path: %s", path);
+    goto done
     if (strlen(path) < strlen(http_data_path))
         goto done;
     if (path[0] != '/')
         goto done;
+    
 
     /*Ensures that only the first part of path (up to the length of http_data_path) is compared.*/
     if (strncmp(path, http_data_path, strlen(http_data_path)) != 0) 
