@@ -3,6 +3,7 @@
 #endif
 
 #include "msys_clixon_http_customdevice.h"
+#include "msys_sonic_device.h"
 
 
 /*! Check if uri path denotes a customdevice path
@@ -164,68 +165,102 @@ done:
     return retval;
 }
 
-/*! Extract substring between the 2nd and 3rd '/'
+/*! Extract device name (between 2nd and 3rd '/') and device URL (from 3rd '/' onwards)
  *
- * @param[in]  uri   Full request URI (e.g., "/anything/sonicvs1/interfaces/interface")
- * @retval     char* Pointer to the extracted device name (must be freed by the caller)
- * @retval     NULL  If extraction fails (invalid format)
+ * @param[in]  uri         Full request URI (e.g., "/customdevice/sonicvs1/interfaces/interface")
+ * @param[out] device_name Pointer to store the extracted device name (must be freed by caller)
+ * @param[out] device_url  Pointer to store the extracted device URL (must be freed by caller)
+ * @retval     0           Success
+ * @retval     -1          Failure (invalid format)
  */
-char *extract_device_name(const char *uri) {
+int extract_device_info(const char *uri, char **device_name, char **device_url) {
     int slash_count = 0;
-    const char *start = NULL, *end = NULL;
+    const char *start = NULL, *end = NULL, *url_start = NULL;
 
-    /* Find the start of the device name (after the 2nd '/') */
+    if (!uri || !device_name || !device_url) {
+        return -1;
+    }
+
+    /* Find the device name and device URL */
     for (const char *p = uri; *p; p++) {
         if (*p == '/') {
             slash_count++;
             if (slash_count == 2) {
-                start = p + 1;  // Move past the '/'
+                start = p + 1;  // Start of device name
             } else if (slash_count == 3) {
-                end = p;  // Found the 3rd '/'
+                end = p;        // End of device name
+                url_start = p;  // Start of device URL
                 break;
             }
         }
     }
 
-    /* If we didn't find the required slashes, return NULL */
-    if (!start || !end)
-        return NULL;
+    /* Check if we found required slashes */
+    if (!start || !end || !url_start) {
+        return -1;
+    }
 
-    /* Allocate memory for the device name */
-    size_t len = end - start;
-    char *device_name = (char *)malloc(len + 1);
-    if (!device_name)
-        return NULL;
+    /* Allocate and copy device name */
+    size_t name_len = end - start;
+    *device_name = (char *)malloc(name_len + 1);
+    if (!*device_name) {
+        return -1;
+    }
+    strncpy(*device_name, start, name_len);
+    (*device_name)[name_len] = '\0';
 
-    strncpy(device_name, start, len);
-    device_name[len] = '\0';  // Null-terminate
+    /* Allocate and copy device URL */
+    *device_url = strdup(url_start);
+    if (!*device_url) {
+        free(*device_name);
+        return -1;
+    }
 
-    return device_name; // Caller must free this
+    return 0;
 }
 
-
-static int get_device_info(clixon_handle h,char *ip_address,char *device_type){
-
+static int get_device_info(clixon_handle h, char **ip_address, char **device_type) {
     clixon_client_handle ch = NULL;
 
     /* Connect to Clixon using Netconf */
     if ((ch = clixon_client_connect(h, CLIXON_CLIENT_NETCONF, NULL)) == NULL)
         return -1;
-    
-    /* Fetch the device's IP address */
-    if (clixon_client_get_str(ch, ip_address, 256, "http://project-technologies.com/device-inventory",
-                              "/projectdevice:project-custom-devices/projectdevice:device[projectdevice:device-name='sonic1']/projectdevice:ip-address") < 0)
-        clixon_client_disconnect(ch);  
-        return -1;
 
-    if (clixon_client_get_str(ch, device_type, 256, "http://project-technologies.com/device-inventory",
-                                "/project-custom-devices/device[device-name='sonic1']/device-type") < 0)
-        clixon_client_disconnect(ch);  
+    /* Allocate memory for ip_address */
+    *ip_address = (char *)malloc(256);
+    if (!*ip_address) {
+        clixon_client_disconnect(ch);
         return -1;
+    }
+
+    /* Fetch the device's IP address */
+    if (clixon_client_get_str(ch, *ip_address, 256, "http://project-technologies.com/device-inventory",
+                              "/projectdevice:project-custom-devices/projectdevice:device[projectdevice:device-name='sonic1']/projectdevice:ip-address") < 0) {
+        clixon_client_disconnect(ch);
+        free(*ip_address);
+        return -1;
+    }
+
+    /* Allocate memory for device_type */
+    *device_type = (char *)malloc(256);
+    if (!*device_type) {
+        clixon_client_disconnect(ch);
+        free(*ip_address);
+        return -1;
+    }
+
+    /* Fetch the device type */
+    if (clixon_client_get_str(ch, *device_type, 256, "http://project-technologies.com/device-inventory",
+                              "/project-custom-devices/device[device-name='sonic1']/device-type") < 0) {
+        clixon_client_disconnect(ch);
+        free(*ip_address);
+        free(*device_type);
+        return -1;
+    }
 
     clixon_client_disconnect(ch);
     return 0;
- }
+}
 
 /*! operations for GET, PUT, POST etc customdevice request
  *
@@ -256,6 +291,9 @@ api_http_customdevice(clixon_handle  h,
     char *path = NULL;
     int   ret;
     char *device_name = NULL;
+    char *device_url = NULL;
+    char *ip_address = NULL;
+    char *device_type = NULL;
 
     clixon_debug(CLIXON_DBG_RESTCONF, "");
     if (req == NULL){
@@ -275,41 +313,42 @@ api_http_customdevice(clixon_handle  h,
         return NULL;
     }
     /* 2. Get the device information */
-    char *device_name = extract_device_name(uri);
+    if (extract_device_info(path, &device_name, &device_url) != 0) {
+        goto done;
+    }
     request_method = restconf_param_get(h, "REQUEST_METHOD");
     /* send the information to the device and get ip and port if required*/
-    char ip_address[256];
-    char device_type[256];
-    if (get_device_info(h, ip_address, device_type) != 0){
-        if (api_http_customdevice_json_err(h, req, 404) < 0) /* not found */
+    if (get_device_info(h, &ip_address, &device_type) != 0) {
+        if (api_http_customdevice_json_err(h, req, 404) < 0)  /* Not found */
             goto done;
         goto ok;
     }
 
     // Using if-else since switch-case doesn't support strings directly
     if (strcmp(device_type, "SONiC") == 0) {
-        printf("Handling SONiC device.\n");
+        if (sonic_process_api(h ,req, qvec, device_url, ip_address, request_method) != 0)
+            goto done
     } else if (strcmp(device_type, "Cisco") == 0) {
         printf("Handling Cisco device.\n");
     } else {
         printf("Handling other devices.\n");
     }
 
-    /*
-    if (strcmp(request_method, "GET") == 0){
-    }
-    else if (strcmp(request_method, "HEAD") == 0){
-        head = 1;
-    }
-    else if (strcmp(request_method, "OPTIONS") == 0){
-        options = 1;
-    }
-    else {
-        if (api_http_data_err(h, req, 405) < 0) /* method not allowed */
-        // goto done;
-        // goto ok;
-    }
-    */
+    // /*
+    // if (strcmp(request_method, "GET") == 0){
+    // }
+    // else if (strcmp(request_method, "HEAD") == 0){
+    //     head = 1;
+    // }
+    // else if (strcmp(request_method, "OPTIONS") == 0){
+    //     options = 1;
+    // }
+    // else {
+    //     if (api_http_data_err(h, req, 405) < 0) /* method not allowed */
+    //     // goto done;
+    //     // goto ok;
+    // // }
+    // */
     
     /* 3. query parameters not accepted */
     if (qvec != NULL){
@@ -348,7 +387,8 @@ api_http_customdevice(clixon_handle  h,
     if (path)
         free(path);
     if (device_name)
-        free(device_name);    
+        free(device_name);
+        free(device_url);    
     clixon_debug(CLIXON_DBG_RESTCONF, "retval:%d", retval);
     return retval;
 }
