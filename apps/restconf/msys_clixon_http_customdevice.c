@@ -40,6 +40,9 @@ api_path_is_customdevice(clixon_handle h)
     int    retval = 0;
     char  *path = NULL;
     const char *http_data_path = "/customdevice";
+    size_t custom_len = strlen(http_data_path);
+
+    clixon_debug(CLIXON_DBG_RESTCONF, "");
 
     /*
     if (restconf_http_data_get(h) == 1) //http data access permession for restconf
@@ -61,17 +64,25 @@ api_path_is_customdevice(clixon_handle h)
     CUSTOM_DEVICE_HTTP_PATH is not defined in clixon-config yang we need add that in our custom yang and resolve it on our own 
     as of now i'll just hard code it to custompath 
     */
-    clixon_debug(CLIXON_DBG_RESTCONF, "Explicint exit & Extracted path: %s", path);
-    goto done;
-    if (strlen(path) < strlen(http_data_path))
-        goto done;
-    if (path[0] != '/')
-        goto done;
+    clixon_debug(CLIXON_DBG_RESTCONF, "Extracted path: %s", path);
     
-
-    /*Ensures that only the first part of path (up to the length of http_data_path) is compared.*/
-    if (strncmp(path, http_data_path, strlen(http_data_path)) != 0) 
+    /* Check if path is long enough */
+    size_t path_len = strlen(path);
+    if (path_len <= custom_len) 
         goto done;
+
+    /* Ensure path starts with '/' */
+    if (path[0] != '/') 
+        goto done;
+
+    /* Ensure path starts with http_data_path */
+    if (strncmp(path, http_data_path, custom_len) != 0) 
+        goto done;
+
+    /* Ensure the next character after http_data_path is '/' (to avoid false matches) */
+    if (path_len > custom_len && path[custom_len] != '/') 
+        goto done;
+
     retval = 1;
  done:
     
@@ -204,6 +215,7 @@ done:
 int extract_device_info(const char *uri, char **device_name, char **device_url) {
     int slash_count = 0;
     const char *start = NULL, *end = NULL, *url_start = NULL;
+    clixon_debug(CLIXON_DBG_RESTCONF, "");
 
     if (!uri || !device_name || !device_url) {
         return -1;
@@ -249,6 +261,7 @@ int extract_device_info(const char *uri, char **device_name, char **device_url) 
 
 static int get_device_info(clixon_handle h, char **ip_address, char **device_type) {
     clixon_client_handle ch = NULL;
+    clixon_debug(CLIXON_DBG_RESTCONF, "");
 
     /* Connect to Clixon using Netconf */
     if ((ch = clixon_client_connect(h, CLIXON_CLIENT_NETCONF, NULL)) == NULL)

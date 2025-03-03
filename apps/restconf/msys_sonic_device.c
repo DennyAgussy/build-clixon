@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <limits.h>
+#include <curl/curl.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/wait.h>
@@ -23,6 +24,8 @@ int sonic_process_api(clixon_handle h, void *req, cvec *qvec, const char *device
     CURL *curl;
     CURLcode res;
     char url[512];
+
+    clixon_debug(CLIXON_DBG_RESTCONF, "");
 
     if (!device_url || !ip_address || !request_method) {
         printf("Error: Missing required parameters.\n");

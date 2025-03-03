@@ -453,7 +453,7 @@ restconf_http1_path_root(clixon_handle  h,
             goto done;
     }
     else if (api_path_is_customdevice(h)){
-        if (api_http_data(h, sd, sd->sd_qvec) < 0)//////////////////////
+        if (api_http_customdevice(h, sd, sd->sd_qvec) < 0)
             goto done;
     }
     else if (api_path_is_stream(h)){
