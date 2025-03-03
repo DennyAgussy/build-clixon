@@ -266,6 +266,10 @@ static int get_device_info(clixon_handle h, char **ip_address, char **device_typ
     /* Connect to Clixon using Netconf */
     if ((ch = clixon_client_connect(h, CLIXON_CLIENT_NETCONF, NULL)) == NULL)
         return -1;
+    s = clixon_client_socket_get(ch);
+    if (clixon_client_hello(s, NULL, 0) < 0)
+        return -1;
+    
 
     /* Allocate memory for ip_address */
     *ip_address = (char *)malloc(256);
