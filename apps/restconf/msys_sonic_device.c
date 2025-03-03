@@ -18,6 +18,9 @@
 #include <libgen.h>
 #include <sys/stat.h> /* chmod */
 
+/* cligen */
+#include <cligen/cligen.h>
+
 #include "msys_sonic_device.h"
 
 int sonic_process_api(clixon_handle h, void *req, cvec *qvec, const char *device_url, const char *ip_address, const char *request_method){
