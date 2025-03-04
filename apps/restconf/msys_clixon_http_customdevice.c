@@ -261,6 +261,7 @@ int extract_device_info(const char *uri, char **device_name, char **device_url) 
 
 static int get_device_info(clixon_handle h, char **ip_address, char **device_type) {
     clixon_client_handle ch = NULL;
+    int s;
     clixon_debug(CLIXON_DBG_RESTCONF, "");
 
     /* Connect to Clixon using Netconf */
@@ -280,7 +281,7 @@ static int get_device_info(clixon_handle h, char **ip_address, char **device_typ
 
     /* Fetch the device's IP address */
     if (clixon_client_get_str(ch, *ip_address, 256, "http://project-technologies.com/device-inventory",
-                              "/projectdevice:project-custom-devices/projectdevice:device[projectdevice:device-name='sonic1']/projectdevice:ip-address") < 0) {
+                              "project-custom-devices/device[device-name='sonic1']/ip-address") < 0) {
         clixon_client_disconnect(ch);
         free(*ip_address);
         return -1;
