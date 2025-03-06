@@ -23,30 +23,67 @@
 
 #include "msys_sonic_device.h"
 
+#define SONIC_USERNAME "admin"
+#define SONIC_PASSWORD "YourPassword"  // Replace with actual password
+#define CLIENT_CERT "/path/to/client-cert.pem"  // Replace with actual path
+#define CLIENT_KEY "/path/to/client-key.pem"
+
 int sonic_process_api(clixon_handle h, void *req, cvec *qvec, const char *device_url, const char *ip_address, const char *request_method){
     CURL *curl;
     CURLcode res;
     char url[512];
+    struct curl_slist *headers = NULL;
 
     clixon_debug(CLIXON_DBG_RESTCONF, "");
 
     if (!device_url || !ip_address || !request_method) {
-        printf("Error: Missing required parameters.\n");
+        clixon_debug(CLIXON_DBG_RESTCONF, "Error: Missing required parameters.\n");
         return -1;
     }
 
     /* Construct the full API URL */
-    snprintf(url, sizeof(url), "http://%s%s", ip_address, device_url);
+    snprintf(url, sizeof(url), "https://%s%s", ip_address, device_url);
 
     /* Initialize CURL */
     curl = curl_easy_init();
     if (!curl) {
-        printf("Error: Failed to initialize CURL.\n");
+	clixon_debug(CLIXON_DBG_RESTCONF, "Error: Failed to initialize CURL.\n");
         return -1;
+    }
+
+    /* Add Headers */
+    headers = curl_slist_append(headers, "Accept: application/yang-data+json");
+
+    /* For POST, PUT, PATCH, add Content-Type header not handeled Delete and  HEAD verify later*/
+    if (strcmp(request_method, "GET") != 0) {
+        headers = curl_slist_append(headers, "Content-Type: application/yang-data+json");
     }
 
     /* Set the URL */
     curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+    /* Enable SSL/TLS */
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L); // Verify server certificate
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L); // Verify hostname in certificate
+    
+    /* Handle Basic Authentication */
+    if (SONIC_USERNAME != NULL && SONIC_PASSWORD != NULL) {
+        char auth[256];
+        snprintf(auth, sizeof(auth), "%s:%s", SONIC_USERNAME, SONIC_PASSWORD);
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        curl_easy_setopt(curl, CURLOPT_USERPWD, auth);
+    } else {
+        clixon_debug(CLIXON_DBG_RESTCONF, "Basic authentication credentials are missing!\n");
+    }
+
+    /* Handle Client Certificate Authentication */
+    if (CLIENT_CERT != NULL && CLIENT_KEY != NULL) {
+        curl_easy_setopt(curl, CURLOPT_SSLCERT, CLIENT_CERT);
+        curl_easy_setopt(curl, CURLOPT_SSLKEY, CLIENT_KEY);
+    } else {
+        clixon_debug(CLIXON_DBG_RESTCONF, "SSL certificate authentication details are missing!\n");
+    }
 
     /* Set request method */
     if (strcmp(request_method, "POST") == 0) {
@@ -56,18 +93,25 @@ int sonic_process_api(clixon_handle h, void *req, cvec *qvec, const char *device
     } else if (strcmp(request_method, "DELETE") == 0) {
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     } // Default is GET, so no extra option needed
+    
+    /* Set request body if needed, not implemented yet i think this is -d option*/
+    if ((strcmp(request_method, "POST") == 0 || strcmp(request_method, "PUT") == 0 || strcmp(request_method, "PATCH") == 0) 
+        && request_body != NULL) {
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body);
+    }
 
     /* Perform the request */
     res = curl_easy_perform(curl);
 
     /* Check for errors */
     if (res != CURLE_OK) {
-        printf("CURL Request Failed: %s\n", curl_easy_strerror(res));
+ 	clixon_debug(CLIXON_DBG_RESTCONF, "CURL Request Failed: %s\n", curl_easy_strerror(res));
     } else {
-        printf("API Request Successful: %s %s\n", request_method, url);
+	clixon_debug(CLIXON_DBG_RESTCONF, "API Request Successful: %s %s\n", request_method, url);
     }
 
     /* Cleanup */
+    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     return (res == CURLE_OK) ? 0 : -1;
 }
